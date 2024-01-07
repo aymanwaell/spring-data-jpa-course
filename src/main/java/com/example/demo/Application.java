@@ -1,10 +1,15 @@
 package com.example.demo;
 
+import com.github.javafaker.Faker;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @SpringBootApplication
@@ -15,31 +20,61 @@ public class Application {
     }
 
     @Bean
-    CommandLineRunner commandLineRunner(StudentRepository studentRepository){
+    CommandLineRunner commandLineRunner(
+            StudentRepository studentRepository,
+            StudentIdCardRepository studentIdCardRepository
+    ){
         return args -> {
-            Student maria = new Student(
-                    "Maria",
-                    "Jones",
-                    "mariajones@amigoscode.edu",
-                    21
+            Faker faker = new Faker();
+            String firstName = faker.name().firstName();
+            String lastName = faker.name().lastName();
+            String email = String.format("%s.%s@amigoscode.edu",firstName,lastName);
+            Student student = new Student
+                    (
+                            firstName,
+                            lastName,
+                            email,
+                            faker.number().numberBetween(17,55)
+                    );
+            student.addBook(new Book(
+                    "Clean Code",
+                    LocalDateTime.now().minusDays(4))
             );
-            Student maria2 = new Student(
-                    "Maria",
-                    "Jones",
-                    "mariajones2@amigoscode.edu",
-                    25
+
+            student.addBook(new Book(
+                    "Think and grow reach",
+                    LocalDateTime.now())
             );
-            Student ahmed = new Student(
-                    "Ahmed",
-                    "Ali",
-                    "ahmedali@amigoscode.edu",
-                    18
+
+            student.addBook(new Book(
+                    "Spring Data JPA",
+                    LocalDateTime.now().minusYears(1))
             );
-            System.out.println("adding maria and ahmed");
-            studentRepository.saveAll(List.of(maria,ahmed,maria2));
-            studentRepository.findStudentByEmail("ahmedali@amigoscode.edu")
-                    .ifPresentOrElse(System.out::println,() -> System.out.println("student with email ahmedali@amigoscode.edu not found"));
-            studentRepository.selectStudentsByFirstNameEqualsAndAgeIsGreaterThanEqualNative("Maria",21).forEach(System.out::println);
+
+            StudentIdCard studentIdCard = new StudentIdCard
+                    ("123456789", student);
+            studentIdCardRepository.save(studentIdCard);
+            studentRepository.findById(1L)
+                            .ifPresent(System.out::println);
+            studentIdCardRepository.findById(1L)
+                    .ifPresent(System.out::println);
         };
+    }
+
+    private void generateRandomStudents(StudentRepository studentRepository) {
+        Faker faker = new Faker();
+        for (int i = 0; i < 20; i++) {
+            String firstName = faker.name().firstName();
+            String lastName = faker.name().lastName();
+            String email = String.format("%s.%s@amigoscode.edu",firstName,lastName);
+            Student student = new Student
+                    (
+                    firstName,
+                    lastName,
+                    email,
+                    faker.number().numberBetween(17,55)
+                    );
+            studentRepository.save(student);
+        }
     }
 }
